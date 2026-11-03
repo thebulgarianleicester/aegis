@@ -9,6 +9,7 @@ members = [
     "crates/aegis-control",
     "crates/aegis-simulator",
     "crates/aegis-daemon",
+    "crates/aegis-ctl",
 ]
 
 [workspace.package]
