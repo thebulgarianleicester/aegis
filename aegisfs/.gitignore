@@ -1,0 +1,8 @@
+/target/
+/web/node_modules/
+/web/dist/
+/demo-data/
+*.report.json
+/synthetic-corpus/
+
+/replay-demo/

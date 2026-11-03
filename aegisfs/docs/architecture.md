@@ -1,0 +1,24 @@
+# Architecture and scientific guardrails
+
+## Implemented slice
+
+The classifier computes Shannon entropy, difference, Pearson chi-square and upper-tail p-value with 255 degrees of freedom, add-0.5-smoothed post/pre KL divergence in bits, lag-one Pearson correlation, and a small signature table (10 signatures, not 64). Chi-square is omitted for fewer than 1,280 bytes because the expected bin count would fall below five. Header detection is signature matching, not validation of document structure. `StrideTracker` is a separately tested primitive; snapshot-based CLI comparisons cannot reconstruct syscall order and do not use it. The current scalar implementation uses floating-point logarithms and the incomplete gamma function; no SIMD or lookup-table acceleration is claimed.
+
+The `demo_flag` is deliberately an arbitrary proof-of-plumbing rule. Nothing terminates or freezes processes. The viewer only parses a local JSON report; the navigation entries for future features are informational, not operational.
+
+## Corrections to assumptions in the supplied blueprint
+
+1. **Compression is not reliably distinguishable from encryption** by per-block entropy or chi-square. Well-compressed data can be statistically indistinguishable from random at these sample sizes; distributions vary by codec, contents and block framing. An upper-tail chi-square p-value is not an encryption probability. A balanced repeating byte sequence has perfect one-byte uniformity but is not random. Finite-sample entropy estimates for 4 KiB pseudorandom samples are usually below 8 bits/byte; a 7.99 cutoff would be unsound. Empirically evaluate on varied workloads, including adversarially crafted samples.
+2. The decayed, reflected score in the blueprint is a CUSUM-like heuristic, **not classical Wald SPRT**. Classical alpha/beta bounds do not automatically hold under exponential decay, repeated resets, feature dependence, adaptive workload sampling or uncalibrated likelihoods. Canary events must not be asserted to guarantee safe containment without evaluating benign access and policy.
+3. `fanotify` permission events do not mediate every write, truncate, rename, unlink, or mmap modification. eBPF tracepoints provide observation, not a generic synchronous write gate. FUSE only mediates operations actually performed through its mounted path; direct backing-path, already-open descriptors, special operations, mmap semantics and mount configuration require explicit threat modeling. Root with sufficient privileges cannot generally be treated as unconditionally contained by a userspace daemon. Plan for kernel/version/capability constraints and a fail-closed policy.
+4. Reverse per-process replay alone is not conflict-safe: it can overwrite other actors' concurrent changes. Process attribution via PID is subject to reuse and worker/lineage ambiguity. Hard links, rename-over-existing, metadata, sparse files, permissions, xattrs, ACLs, directory fsync, cross-device operations and crash recovery require specific semantics. Multi-file rollback is not automatically atomic to readers. Recovery must either serialize/conflict-detect writes, use isolated versioning, or expose narrower documented guarantees.
+5. Journal pre-images must be persisted and ordered before forwarding changes, with explicit durable metadata, integrity verification, space reservation and crash recovery. Ring capacity exhaustion cannot silently evict uncommitted pre-images while claiming RPO=0. A newly-created file still needs rollback of creation and protection against replacement/link races. Benchmark durability costs under realistic hardware and workloads.
+6. The benchmark is an offline snapshot comparison, not an in-line system; its `suspicious` label applies to all blocks in a row, even unchanged blocks. No mixed-workload FPR, validation, throughput target, adversarial effectiveness or operational safety has been established.
+
+## Suggested staged plan
+
+1. Validate feature calculations with independent test vectors, randomized property tests and compressed/cryptographic corpora; separate training/calibration/test by workload or source. Implement additional features only as experimentally justified.
+2. Prototype durable journal in a temporary isolated directory with write-ahead ordering, checksums, idempotent restart, capacity fail-closed behavior and comprehensive failure injection before attaching FUSE.
+3. Design conflicts and per-object identity; test concurrent writers and crash points. Specify metadata and mmap limitations. Integrate FUSE only once these invariants are reproducible.
+4. Add process identity/lineage and explicit, opt-in containment policies with Linux capability checks; never signal arbitrary processes from a demo.
+5. Add an authenticated local control plane and clearly separate simulated from observed data. Evaluate eBPF on supported kernels after defining privilege and self-protection boundaries.

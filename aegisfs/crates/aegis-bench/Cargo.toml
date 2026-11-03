@@ -1,0 +1,13 @@
+[package]
+name = "aegis-bench"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+aegis-classifier = { path = "../aegis-classifier" }
+clap = { version = "4", features = ["derive"] }
+csv = "1"
+serde.workspace = true
+serde_json.workspace = true
+anyhow = "1"
