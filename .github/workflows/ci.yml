@@ -30,7 +30,7 @@ jobs:
       - name: Rust tests
         run: |
           set -o pipefail
-          cargo test --workspace 2>&1 | tee cargo-test.log
+          cargo test --workspace --locked 2>&1 | tee cargo-test.log
       - name: Rust formatting
         run: |
           set -o pipefail

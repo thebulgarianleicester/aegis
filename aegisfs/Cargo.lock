@@ -23,6 +23,44 @@ dependencies = [
 ]
 
 [[package]]
+name = "aegis-control"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "blake3",
+ "libc",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
+name = "aegis-ctl"
+version = "0.1.0"
+dependencies = [
+ "aegis-journal",
+ "anyhow",
+ "clap",
+ "serde_json",
+]
+
+[[package]]
+name = "aegis-daemon"
+version = "0.1.0"
+dependencies = [
+ "aegis-classifier",
+ "aegis-control",
+ "aegis-journal",
+ "aegis-simulator",
+ "aegis-sprt",
+ "anyhow",
+ "clap",
+ "serde",
+ "serde_json",
+ "tempfile",
+]
+
+[[package]]
 name = "aegis-journal"
 version = "0.1.0"
 dependencies = [
@@ -31,6 +69,7 @@ dependencies = [
  "fs2",
  "proptest",
  "rusqlite",
+ "serde",
  "tempfile",
 ]
 
@@ -45,6 +84,20 @@ dependencies = [
  "serde",
  "serde_json",
  "tempfile",
+]
+
+[[package]]
+name = "aegis-simulator"
+version = "0.1.0"
+dependencies = [
+ "aegis-classifier",
+ "aegis-control",
+ "aegis-journal",
+ "anyhow",
+ "blake3",
+ "clap",
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
