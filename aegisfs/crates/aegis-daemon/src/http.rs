@@ -3,7 +3,7 @@ use anyhow::{bail, Context, Result};
 use std::{
     collections::HashMap,
     fs,
-    io::{BufRead, BufReader, Read, Write},
+    io::{BufRead, BufReader, Write},
     net::{TcpListener, TcpStream},
     path::{Component, Path, PathBuf},
     thread,

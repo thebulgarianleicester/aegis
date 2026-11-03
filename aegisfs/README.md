@@ -1,90 +1,124 @@
 # AegisFS
 
-A Linux ransomware-defense **research prototype**, developed incrementally from the Project A blueprint. The current work comprises an **offline classifier/report viewer, an isolated journal laboratory prototype and a standalone scoring engine**, not a filesystem protection system. Do not use it to protect real data or run malware against it.
+AegisFS is a Linux ransomware-defense **research prototype** built incrementally from the Project A blueprint. This revision adds a working, isolated vertical slice: differential byte features, grouped write-ahead CoW recovery, sequential process-tree scoring, valid document canaries, safe synthetic workloads, a recovery CLI, and a live React console.
 
-## Status
+**It is not a filesystem protection product.** No protected FUSE mount, eBPF LSM sensor, kernel interception, or automatic host-process containment is active. The web simulator only transforms files that it generated inside new, empty lab directories and always invokes verified cleanup rollback. Do not run malware against this prototype or use it as a backup system.
 
-| Milestone | Status |
+## Implemented milestones
+
+| Milestone | Current status |
 |---|---|
-| A1 — differential features and offline benchmark | Initial implementation and synthetic baseline comparison; representative validation and performance evaluation ongoing |
-| A2 — FUSE, durable CoW journal and rollback | Experimental isolated whole-file journal only; FUSE, extent journal and production recovery not implemented |
-| A3 — process lineage, sequential scoring, containment | Experimental pure scoring library; lineage and containment not implemented |
-| A4 — eBPF telemetry and LSM | Not implemented |
-| A5 — daemon/API/live console | Not implemented; offline JSON viewer scaffold only |
-| A6 — workload benchmarks and scientific evaluation | Not implemented |
+| A1 — differential features and offline benchmark | Existing Shannon/ΔH, χ², KL, serial-correlation, header and stride primitives; synthetic offline comparison. Representative corpus validation and performance work remain. |
+| A2 — durable CoW and rollback | **Grouped whole-file write-ahead transactions** for write/create, shrinking truncate, rename (including replacement), and unlink. BLAKE3 content-addressed pre-images, SQLite WAL metadata, capacity fail-closed behavior, reverse replay, conflict detection, and recovery tests. Not a FUSE or 4 KiB extent implementation. |
+| A3 — scoring, lineage, containment | Existing time-decayed evidence scorer; PID + start-time `/proc` lineage primitive; explicit-scope, dry-run-by-default SIGSTOP/SIGKILL controller. The UI uses synthetic workers under a shared RAGID and never signals host processes. |
+| A4 — eBPF and LSM self-protection | Not implemented. `/proc` telemetry is not a synchronous security boundary. |
+| A5 — API and live console | Working lab REST + WebSocket daemon and React dashboard, process inspector, recovery ledger, canary matrix, and simulator. The small standard-library HTTP server replaces Axum for this dependency-light prototype; no production TLS/JWT boundary is included. |
+| A6 — systems/scientific evaluation | Existing offline synthetic reports only. `fio`, ROC/PR evaluation, calibrated error bounds, and measured latency/throughput targets remain. |
 
-No performance, false-positive, detection-time, recovery, atomicity, or data-loss targets have been demonstrated. See [architecture notes](docs/architecture.md) before building the next milestone.
+No false-positive, detection-time, atomicity, throughput, or RPO target is claimed. See [scientific guardrails](docs/architecture.md) and [transactional lab semantics](docs/transactional-lab.md).
 
-## Layout
+## Workspace layout
 
-- `crates/aegis-classifier`: Rust byte-distribution and header features; separate stride tracker.
-- `crates/aegis-bench`: read-only paired-file CSV runner and JSON export.
-- `crates/aegis-journal`: isolated single-writer whole-file journal with a logical preimage quota; [limits and ordering](docs/journal-lab.md).
-- `crates/aegis-sprt`: standalone, uncalibrated time-decayed evidence scorer; [model and limitations](docs/scoring-engine.md).
-- `crates/aegis-replay`: read-only offline integration of classifier and scorer; [replay instructions](docs/offline-replay.md).
-- `web`: React + TypeScript offline report viewer. It makes no API requests.
-- `scripts/make_demo.py`: creates a small, synthetic, non-cryptographic demonstration dataset in a **new** directory.
-- `scripts/make_corpus.py`: generates synthetic in-memory data, AES-256-CTR/ChaCha20 transforms and gzip pairs into a **new** directory; it cannot take source files.
-- `scripts/summarize_report.py`: summarizes per-workload block-level baselines.
-- `scripts/make_replay_demo.py`: creates synthetic replay instructions from an existing generated corpus.
-- `docs`: design limits and next steps.
+- `crates/aegis-classifier`: byte-distribution, header, correlation, and stride features.
+- `crates/aegis-bench`: read-only paired-file benchmark and JSON export.
+- `crates/aegis-journal`: original single-file laboratory journal plus grouped `TxJournal` transactions.
+- `crates/aegis-sprt`: time-decayed evidence scorer. The lab probability profile is explicitly uncalibrated.
+- `crates/aegis-control`: `/proc` lineage, explicitly scoped containment, and valid PDF/OOXML canaries.
+- `crates/aegis-simulator`: safe corpus generator, gzip workload, RFC 8439 ChaCha20 workload, intermittent and multi-worker modes.
+- `crates/aegis-daemon`: isolated lab state, simulator coordination, REST, WebSocket, and optional static console hosting.
+- `crates/aegis-ctl`: ledger inspection and recovery CLI.
+- `crates/aegis-replay`: offline classifier/scorer replay.
+- `web`: React + TypeScript operational console and offline report viewer.
+- `scripts`, `docs`, `tests`: synthetic corpus generation, design notes, and Python regression tests.
 
 ## Prerequisites
 
-Linux; stable Rust toolchain with Cargo; Python 3.9+ (with `random.randbytes`); Node.js 20+ and npm. OpenSSL on PATH is required for the synthetic cryptographic corpus. No FUSE device, root privileges, or eBPF is needed for this milestone. If installed with rustup, `source "$HOME/.cargo/env"` may be necessary in a new shell.
+Linux, stable Rust/Cargo, Python 3.9+, Node.js 20+ and npm. `gzip` must be on `PATH` for the benign simulator workload. OpenSSL is needed only by the older synthetic corpus script. No FUSE device, root privileges, or eBPF support is required for this lab.
 
-## Run tests
+## Build and test
 
 ```sh
 cargo test --workspace
 python3 -m unittest discover -s tests -v
-```
-
-## Run an offline demo
-
-From the repository root:
-
-```sh
-python3 scripts/make_demo.py demo-data   # fails if demo-data already exists
-cargo run --release -p aegis-bench -- --manifest demo-data/manifest.csv --report demo.report.json
 cd web
 npm ci
-npm run dev
+npm run build
 ```
 
-Open the printed local URL and use **Load report JSON** to open `demo.report.json`. The browser reads it locally. Demo data use deterministic pseudo-random bytes, **not real encryption**. They do not represent a real benchmark corpus or validate detector accuracy.
+CI runs the same checks on every push and pull request.
 
-## Reproduce the synthetic comparison
+## Run the live isolated-lab console
+
+Build the console, then let the daemon serve it:
 
 ```sh
-# The output directory must not exist; choose a fresh name on every run.
+cd web && npm ci && npm run build && cd ..
+cargo run -p aegis-daemon -- \
+  --bind 0.0.0.0:8787 \
+  --lab-root /tmp/aegisfs-lab \
+  --web-root "$PWD/web/dist"
+```
+
+Open `http://localhost:8787`. In **Workload simulator**, start **Benign gzip**, **Full ChaCha20**, **Intermittent encryption**, **Multi-worker tree**, or **Canary tripwire**. The dashboard streams phase-space observations and SPRT-like trajectories; malicious profiles freeze the synthetic tree and replay the journal. A run is marked recovered only when the recursive lab file-tree BLAKE3 hash equals its pre-run value.
+
+For Vite development instead:
+
+```sh
+cargo run -p aegis-daemon -- --lab-root /tmp/aegisfs-lab
+cd web
+npm run dev -- --port 5173
+```
+
+Vite proxies `/api` HTTP and WebSocket traffic to the daemon. The API is intentionally unauthenticated lab functionality; do not expose it as a production security service.
+
+## Run the simulator without the UI
+
+Choose fresh paths. Both directories may be absent or empty, and the command fails rather than deleting or reusing a nonempty lab:
+
+```sh
+cargo run -p aegis-simulator -- \
+  --data-root /tmp/aegis-run-001/data \
+  --journal-root /tmp/aegis-run-001/journal \
+  --workload intermittent_encryption \
+  --files 12 \
+  --ragid cli-lab-001
+```
+
+The simulator uses fixed public test keys and generated data only. Full and multi-worker modes include rename/unlink operations. Intermittent mode transforms one 4 KiB block in four. Every run ends with inverse replay and a pre/post tree-hash check.
+
+Inspect or recover a transaction group with unresolved operations:
+
+```sh
+cargo run -p aegis-ctl -- ledger \
+  --data-root /path/to/lab/data --journal-root /path/to/lab/journal --ragid GROUP
+
+cargo run -p aegis-ctl -- rollback \
+  --data-root /path/to/lab/data --journal-root /path/to/lab/journal --ragid GROUP
+```
+
+## Lab API
+
+- `GET /api/v1/status`, `/telemetry`, `/processes`, `/journal`, `/runs`, `/canaries`, `/alerts`
+- `POST /api/v1/processes/:ragid/contain`
+- `POST /api/v1/processes/:ragid/rollback`
+- `POST /api/v1/canaries/deploy`
+- `POST /api/v1/simulator/run` with `{"workload":"intermittent_encryption"}`
+- `GET /api/v1/stream` with a WebSocket upgrade
+
+Containment and rollback endpoints act on synthetic run state. They do not map RAGIDs to arbitrary host PIDs.
+
+## Existing offline evaluation
+
+The original paired-file benchmark and replay remain available:
+
+```sh
 python3 scripts/make_corpus.py synthetic-corpus --samples 10 --seed 2026
 cargo run --release -p aegis-bench -- --manifest synthetic-corpus/manifest.csv --report synthetic.report.json
 python3 scripts/summarize_report.py synthetic.report.json
 ```
 
-The generator only transforms internally generated bytes in memory, writes exclusively to a new directory, and uses fixed public testing keys. It includes synthetic text edits, gzip replacements, benign high-entropy rewrites, full AES/ChaCha20, intermittent AES and AES of gzip. Its PDF-like header is **not a valid PDF**. OpenSSL is invoked with in-memory input, never an existing file. These cases are intentionally small and highly artificial; they do not establish real-world accuracy. The snapshot comparison does not model real syscall events or containment. See [synthetic evaluation](docs/synthetic-evaluation.md) for the actual run and limitations.
+Open the console’s **Offline research** view to load the report. See [synthetic evaluation](docs/synthetic-evaluation.md), [offline replay](docs/offline-replay.md), and [journal laboratory](docs/journal-lab.md) for schemas and limitations.
 
-## Offline score replay
+## Next implementation boundary
 
-See [offline replay](docs/offline-replay.md) for commands, input schema, and the example results. Load the generated replay report separately in the console’s **Offline score replay** panel. This replay does not monitor or control processes.
-
-## Use your own paired data
-
-Required CSV columns are `pre,post,label` with `label` exactly `benign` or `suspicious`. Paths may be absolute or are resolved relative to the CSV file. Each row must specify nonempty regular files of equal size, representing aligned snapshots of the *same* file before and after an operation. Inputs should remain unchanged during the run. The runner compares contiguous 4096-byte chunks from offset 0; a trailing shorter chunk is included, but no chi-square p-value is emitted for a sample shorter than 1280 bytes. It does not detect write offsets from snapshots or track operation history. It reads inputs without modification, but **overwrites the chosen output report path**; do not run concurrently against mutable or untrusted paths.
-
-Example manifest:
-
-```csv
-pre,post,label
-before/report.pdf,after/report.pdf,suspicious
-before/code.txt,after/code.txt,benign
-```
-
-The optional `workload` column groups results. The optional `positive_blocks` column is a semicolon-separated set of zero-based 4096-byte block indices, valid only for a `suspicious` row. If omitted or empty, all blocks of a suspicious row are positive; when supplied, only the listed blocks are positive and all others are treated as negative **at the block level**, not evidence of a benign process. Indices must be unique and in range. Labels are ground truth supplied by the dataset author, not verified by the benchmark.
-
-The output includes features and an illustrative, explicitly uncalibrated flag, plus a confusion matrix **per block**. The report also compares that heuristic with static post-entropy > 7.9 and delta-entropy > 1.5. These are simplified block-level baselines, not the temporal/PID engines described in the blueprint. Per-block entries from a file are correlated; the confusion matrix is not a workload-level FPR. At most 10,000 observations are retained for visualization; aggregate counts still include all blocks. `--report` checks for input-file aliases before opening, but this is not a hardened boundary against concurrent path substitution.
-
-## Next steps
-
-A1 still needs labeled representative corpora and controlled, realistic workloads, temporal/process-level baselines, calibrated scoring, confidence intervals and measured performance benchmarks. A2 must expand the isolated journal prototype with safe path resolution, concurrency/conflict semantics, physical-space handling, complete filesystem operations and genuine crash testing before any protected mount is claimed. See [architecture notes](docs/architecture.md).
+A production-oriented next milestone must add a real FUSE adapter with explicit mmap/rename/hard-link semantics, secure path resolution, crash/failure injection, concurrent-writer policy, physical-space accounting, and controlled performance tests. eBPF/LSM self-protection must be evaluated on supported kernels with a documented privileged-root threat model. Neither should be enabled by default until those invariants are tested.

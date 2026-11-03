@@ -283,7 +283,7 @@ impl AppState {
 
     pub fn start_simulation(&self, workload_name: &str) -> Result<RunView> {
         let workload = Workload::from_str(workload_name)?;
-        let (run_id, ragid, data_root, journal_root, root_pid) = {
+        let (_run_id, ragid, data_root, journal_root, root_pid) = {
             let mut engine = self.lock()?;
             if engine.status.active_run.is_some() {
                 bail!("another simulator run is already active");
@@ -336,7 +336,7 @@ impl AppState {
                         workload,
                         data_root,
                         journal_root,
-                        ragid,
+                        ragid: thread_ragid.clone(),
                         root_pid,
                         files: 12,
                     },
