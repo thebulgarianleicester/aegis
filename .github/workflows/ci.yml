@@ -12,6 +12,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      CARGO_TERM_COLOR: never
     defaults:
       run:
         working-directory: aegisfs
@@ -29,19 +31,23 @@ jobs:
         run: |
           set -o pipefail
           cargo test --workspace 2>&1 | tee cargo-test.log
+      - name: Rust formatting
+        run: |
+          set -o pipefail
+          cargo fmt --all -- --check 2>&1 | tee cargo-fmt.log
       - name: Publish Rust diagnostics
         if: failure()
         working-directory: .
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          tail -c 60000 aegisfs/cargo-test.log > rust-diagnostics.log
+          cat aegisfs/cargo-test.log > rust-diagnostics.log
+          if [ -f aegisfs/cargo-fmt.log ]; then cat aegisfs/cargo-fmt.log >> rust-diagnostics.log; fi
+          tail -c 60000 rust-diagnostics.log > rust-diagnostics-tail.log
           jq -n --arg name "Rust diagnostics ${{ github.run_number }}" \
-            --arg sha "${{ github.sha }}" --rawfile text rust-diagnostics.log \
-            '{name:$name,head_sha:$sha,status:"completed",conclusion:"neutral",output:{title:"Rust diagnostics",summary:"Compiler/test output for the Arena sandbox",text:$text}}' \
+            --arg sha "${{ github.sha }}" --rawfile text rust-diagnostics-tail.log \
+            '{name:$name,head_sha:$sha,status:"completed",conclusion:"neutral",output:{title:"Rust diagnostics",summary:"Compiler/test/format output for the Arena sandbox",text:$text}}' \
             | gh api -X POST repos/${{ github.repository }}/check-runs --input -
-      - name: Rust formatting
-        run: cargo fmt --all -- --check
       - name: React production build
         run: npm ci && npm run build
         working-directory: aegisfs/web
