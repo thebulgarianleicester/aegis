@@ -94,7 +94,7 @@ mod tests {
             0x1b1a_1918,
             0x1f1e_1d1c,
         ];
-        let actual = block(key, 1, [0x0000_0090, 0x4a00_0000, 0x0000_0000]);
+        let actual = block(key, 1, [0x0900_0000, 0x4a00_0000, 0x0000_0000]);
         assert_eq!(
             actual[..16],
             [
