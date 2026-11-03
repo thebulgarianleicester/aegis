@@ -1,0 +1,15 @@
+[package]
+name = "aegis-simulator"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+aegis-classifier = { path = "../aegis-classifier" }
+aegis-control = { path = "../aegis-control" }
+aegis-journal = { path = "../aegis-journal" }
+anyhow = "1"
+blake3 = "1"
+clap = { version = "4", features = ["derive"] }
+serde.workspace = true
+serde_json.workspace = true

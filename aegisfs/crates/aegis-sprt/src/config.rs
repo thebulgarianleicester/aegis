@@ -59,6 +59,25 @@ pub struct Config {
     pub max_groups: usize,
 }
 impl Config {
+    /// Explicitly uncalibrated probabilities for the synthetic laboratory UI.
+    /// They are not production detection parameters or Wald error guarantees.
+    pub fn lab_demo() -> Self {
+        Self {
+            uniform: Likelihood { benign: 0.02, suspicious: 0.85 },
+            header_change: Likelihood { benign: 0.001, suspicious: 0.80 },
+            unlink_or_rename: Likelihood { benign: 0.02, suspicious: 0.65 },
+            directory_jump: Likelihood { benign: 0.03, suspicious: 0.70 },
+            canary: Likelihood { benign: 0.0001, suspicious: 0.9999 },
+            decay_per_second: 0.08,
+            threshold: 9.210_340_371_976_184,
+            max_groups: 1024,
+        }
+    }
+
+    pub fn threshold(&self) -> f64 {
+        self.threshold
+    }
+
     pub(crate) fn validate(&self) -> Result<(), ScoringError> {
         if ![
             self.uniform,

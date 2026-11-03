@@ -1,0 +1,19 @@
+[package]
+name = "aegis-daemon"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+aegis-classifier = { path = "../aegis-classifier" }
+aegis-control = { path = "../aegis-control" }
+aegis-journal = { path = "../aegis-journal" }
+aegis-simulator = { path = "../aegis-simulator" }
+aegis-sprt = { path = "../aegis-sprt" }
+anyhow = "1"
+clap = { version = "4", features = ["derive"] }
+serde.workspace = true
+serde_json.workspace = true
+
+[dev-dependencies]
+tempfile = "3"

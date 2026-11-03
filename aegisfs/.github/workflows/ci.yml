@@ -1,0 +1,42 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aegisfs
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: aegisfs/web/package-lock.json
+      - name: Rust tests
+        run: cargo test --workspace
+      - name: Rust formatting
+        run: cargo fmt --all -- --check
+      - name: React production build
+        run: npm ci && npm run build
+        working-directory: aegisfs/web
+      - name: Python tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Save generated Cargo lockfile
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cargo-lockfile
+          path: aegisfs/Cargo.lock
+          retention-days: 1

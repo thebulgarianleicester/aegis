@@ -5,5 +5,7 @@
 //! hostile paths, power failures and production durability are not certified.
 mod filesystem;
 mod journal;
+mod transaction;
 
 pub use journal::{Journal, Pending, Phase};
+pub use transaction::{RecoveryReport, TxEntry, TxJournal};

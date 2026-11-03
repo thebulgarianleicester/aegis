@@ -1,6 +1,15 @@
 [workspace]
 resolver = "2"
-members = ["crates/aegis-classifier", "crates/aegis-bench", "crates/aegis-journal", "crates/aegis-sprt", "crates/aegis-replay"]
+members = [
+    "crates/aegis-classifier",
+    "crates/aegis-bench",
+    "crates/aegis-journal",
+    "crates/aegis-sprt",
+    "crates/aegis-replay",
+    "crates/aegis-control",
+    "crates/aegis-simulator",
+    "crates/aegis-daemon",
+]
 
 [workspace.package]
 edition = "2021"
