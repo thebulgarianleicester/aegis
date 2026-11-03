@@ -48,11 +48,9 @@ fn sha1(input: &[u8]) -> [u8; 20] {
             words[index] = u32::from_be_bytes([word[0], word[1], word[2], word[3]]);
         }
         for index in 16..80 {
-            words[index] = (words[index - 3]
-                ^ words[index - 8]
-                ^ words[index - 14]
-                ^ words[index - 16])
-                .rotate_left(1);
+            words[index] =
+                (words[index - 3] ^ words[index - 8] ^ words[index - 14] ^ words[index - 16])
+                    .rotate_left(1);
         }
         let [mut a, mut b, mut c, mut d, mut e] = h;
         for (index, word) in words.into_iter().enumerate() {
@@ -97,7 +95,10 @@ mod tests {
             accept_key("dGhlIHNhbXBsZSBub25jZQ=="),
             "s3pPLMBiTxaQ9kYGzzhZRbK+xOo="
         );
-        assert_eq!(hex(&sha1(b"abc")), "a9993e364706816aba3e25717850c26c9cd0d89d");
+        assert_eq!(
+            hex(&sha1(b"abc")),
+            "a9993e364706816aba3e25717850c26c9cd0d89d"
+        );
     }
 
     fn hex(bytes: &[u8]) -> String {

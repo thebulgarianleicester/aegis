@@ -73,9 +73,8 @@ impl CanaryManager {
                     file.sync_all()?;
                 }
                 Err(error) if error.kind() == std::io::ErrorKind::AlreadyExists => {
-                    let actual = fs::read(&path).with_context(|| {
-                        format!("read existing canary {}", path.display())
-                    })?;
+                    let actual = fs::read(&path)
+                        .with_context(|| format!("read existing canary {}", path.display()))?;
                     if actual != *expected {
                         bail!("refusing to overwrite modified or user-owned canary {name}");
                     }

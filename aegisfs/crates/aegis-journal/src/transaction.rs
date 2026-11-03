@@ -93,7 +93,9 @@ impl TxJournal {
         object_capacity: u64,
     ) -> Result<Self> {
         validate_ragid(ragid)?;
-        let root = root.canonicalize().context("resolve transaction data root")?;
+        let root = root
+            .canonicalize()
+            .context("resolve transaction data root")?;
         let journal = journal
             .canonicalize()
             .context("resolve transaction journal root")?;
@@ -399,9 +401,7 @@ impl TxJournal {
                 dest_exists,dest_hash,dest_mode,post_exists,post_hash,state
              FROM tx_ops WHERE ragid=?1 ORDER BY id DESC",
         )?;
-        let rows = statement.query_map([&self.ragid], |row| {
-            Ok(record_from_row(row)?.entry)
-        })?;
+        let rows = statement.query_map([&self.ragid], |row| Ok(record_from_row(row)?.entry))?;
         rows.collect::<std::result::Result<Vec<_>, _>>()
             .map_err(Into::into)
     }
@@ -447,8 +447,7 @@ impl TxJournal {
         };
         match record.entry.operation.as_str() {
             "WRITE" | "TRUNCATE" | "CREATE" => {
-                if !Self::matches(&current, &record.pre)
-                    && !Self::matches(&current, &expected_post)
+                if !Self::matches(&current, &record.pre) && !Self::matches(&current, &expected_post)
                 {
                     bail!("conflict: target matches neither pre-image nor post-image");
                 }
@@ -457,8 +456,7 @@ impl TxJournal {
                 }
             }
             "UNLINK" => {
-                if !Self::matches(&current, &expected_post)
-                    && !Self::matches(&current, &record.pre)
+                if !Self::matches(&current, &expected_post) && !Self::matches(&current, &record.pre)
                 {
                     bail!("conflict: unlinked path was recreated by another actor");
                 }

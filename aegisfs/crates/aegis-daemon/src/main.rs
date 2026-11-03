@@ -18,8 +18,8 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
     let state = AppState::new(&args.lab_root)?;
-    let listener = TcpListener::bind(&args.bind)
-        .with_context(|| format!("bind lab API to {}", args.bind))?;
+    let listener =
+        TcpListener::bind(&args.bind).with_context(|| format!("bind lab API to {}", args.bind))?;
     println!("AegisFS isolated-lab API listening on http://{}", args.bind);
     println!("Lab data: {}", args.lab_root.display());
     println!("WARNING: no host filesystem protection or host process containment is active.");

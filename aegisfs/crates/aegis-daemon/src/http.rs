@@ -197,10 +197,17 @@ fn static_response(request: &Request, web_root: Option<&Path>) -> Response {
         return Response::error(405, "static content supports GET only");
     }
     let Some(root) = web_root else {
-        return Response::error(404, "web root not configured; use the Vite development server");
+        return Response::error(
+            404,
+            "web root not configured; use the Vite development server",
+        );
     };
     let relative = request.path.trim_start_matches('/');
-    let relative = if relative.is_empty() { "index.html" } else { relative };
+    let relative = if relative.is_empty() {
+        "index.html"
+    } else {
+        relative
+    };
     if Path::new(relative)
         .components()
         .any(|component| !matches!(component, Component::Normal(_)))

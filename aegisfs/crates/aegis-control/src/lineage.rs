@@ -74,7 +74,11 @@ impl Lineage {
                 uid,
             });
         }
-        let by_pid: HashMap<u32, Raw> = raw.iter().cloned().map(|node| (node.key.pid, node)).collect();
+        let by_pid: HashMap<u32, Raw> = raw
+            .iter()
+            .cloned()
+            .map(|node| (node.key.pid, node))
+            .collect();
         let nodes = raw
             .into_iter()
             .map(|node| {
@@ -118,7 +122,8 @@ impl Lineage {
             let mut cursor = node.parent;
             let mut visited = HashSet::new();
             while let Some(parent) = cursor.and_then(|key| by_pid.get(&key.pid)) {
-                if parent.key.start_time_ticks != cursor.map(|key| key.start_time_ticks).unwrap_or(0)
+                if parent.key.start_time_ticks
+                    != cursor.map(|key| key.start_time_ticks).unwrap_or(0)
                     || !visited.insert(parent.key.pid)
                 {
                     break;
@@ -199,9 +204,7 @@ mod tests {
             node(99, 50, None),
         ]);
         let ragid = lineage.nodes()[0].ragid.clone();
-        assert!(lineage.nodes()[1..3]
-            .iter()
-            .all(|node| node.ragid == ragid));
+        assert!(lineage.nodes()[1..3].iter().all(|node| node.ragid == ragid));
         assert_ne!(lineage.nodes()[3].ragid, ragid);
         assert_eq!(lineage.tree(root).len(), 3);
     }

@@ -1,9 +1,7 @@
 use crate::model::*;
 use aegis_classifier::BlockFeatures;
 use aegis_control::CanaryManager;
-use aegis_simulator::{
-    run, RunConfig, RunSummary, SimEvent, SimulationControl, Workload,
-};
+use aegis_simulator::{run, RunConfig, RunSummary, SimEvent, SimulationControl, Workload};
 use aegis_sprt::{Config, Decision, Evidence, Scorer};
 use anyhow::{bail, Context, Result};
 use std::{
@@ -91,12 +89,7 @@ impl Engine {
             .context("unknown simulator run")
     }
 
-    fn score(
-        &mut self,
-        ragid: &str,
-        timestamp_ns: u64,
-        evidence: Evidence,
-    ) -> Result<bool> {
+    fn score(&mut self, ragid: &str, timestamp_ns: u64, evidence: Evidence) -> Result<bool> {
         let update = self.scorer.observe(ragid, timestamp_ns, evidence)?;
         let contained = update.decision == Decision::AboveThreshold;
         let newly_contained;
@@ -116,9 +109,8 @@ impl Engine {
             newly_contained = contained && process.status != "FROZEN";
             if newly_contained {
                 process.status = "FROZEN".to_owned();
-                process.containment_ms = Some(
-                    (timestamp_ns.saturating_sub(process.started_ns)) / 1_000_000,
-                );
+                process.containment_ms =
+                    Some((timestamp_ns.saturating_sub(process.started_ns)) / 1_000_000);
             }
             frozen = process.status == "FROZEN";
         }
@@ -127,8 +119,9 @@ impl Engine {
                 timestamp_ns,
                 severity: "CRITICAL".to_owned(),
                 ragid: ragid.to_owned(),
-                message: "SPRT threshold crossed; simulated tree frozen and CoW rollback requested."
-                    .to_owned(),
+                message:
+                    "SPRT threshold crossed; simulated tree frozen and CoW rollback requested."
+                        .to_owned(),
             });
             self.alerts.truncate_front(MAX_EVENTS);
         }
@@ -297,11 +290,7 @@ impl AppState {
             let journal_root = run_root.join("journal");
             fs::create_dir_all(&run_root)?;
             let root_pid = 20_000 + counter as u32;
-            let run = RunView::new(
-                run_id.clone(),
-                ragid.clone(),
-                workload.as_str().to_owned(),
-            );
+            let run = RunView::new(run_id.clone(), ragid.clone(), workload.as_str().to_owned());
             engine.status.active_run = Some(run_id.clone());
             engine.runs.insert(0, run.clone());
             engine.runs.truncate(12);
@@ -399,7 +388,8 @@ impl AppState {
             let mut engine = self.lock()?;
             let process = engine.process_mut(ragid)?;
             process.status = "FROZEN".to_owned();
-            process.containment_ms = Some((now_ns().saturating_sub(process.started_ns)) / 1_000_000);
+            process.containment_ms =
+                Some((now_ns().saturating_sub(process.started_ns)) / 1_000_000);
             engine.alerts.push_back(AlertView {
                 timestamp_ns: now_ns(),
                 severity: "WARNING".to_owned(),
@@ -440,9 +430,7 @@ impl AppState {
 fn crypto_uniform(features: &BlockFeatures) -> bool {
     features.delta_h > 1.0
         && features.entropy_post > 7.7
-        && features
-            .chi2_p
-            .is_some_and(|p| (0.01..=0.99).contains(&p))
+        && features.chi2_p.is_some_and(|p| (0.01..=0.99).contains(&p))
 }
 
 fn now_ns() -> u64 {
@@ -464,4 +452,3 @@ impl<T> TruncateFront for VecDeque<T> {
         }
     }
 }
-

@@ -133,11 +133,7 @@ where
         files: config.files,
     });
 
-    let mut journal = TxJournal::open(
-        &config.data_root,
-        &config.journal_root,
-        &config.ragid,
-    )?;
+    let mut journal = TxJournal::open(&config.data_root, &config.journal_root, &config.ragid)?;
     let mut paths: Vec<PathBuf> = fs::read_dir(&config.data_root)?
         .collect::<std::result::Result<Vec<_>, _>>()?
         .into_iter()
@@ -336,10 +332,7 @@ fn gzip(bytes: &[u8]) -> Result<Vec<u8>> {
         .spawn()
         .context("start gzip for benign compression workload")?;
     std::io::Write::write_all(
-        child
-            .stdin
-            .as_mut()
-            .context("open gzip standard input")?,
+        child.stdin.as_mut().context("open gzip standard input")?,
         bytes,
     )?;
     drop(child.stdin.take());
@@ -381,11 +374,7 @@ mod tests {
     fn intermittent_mode_changes_only_one_block_in_four() {
         let input = b"Aegis lab text ".repeat(4096);
         let output = transform(Workload::IntermittentEncryption, &input, 0).unwrap();
-        for (index, (before, after)) in input
-            .chunks(4096)
-            .zip(output.chunks(4096))
-            .enumerate()
-        {
+        for (index, (before, after)) in input.chunks(4096).zip(output.chunks(4096)).enumerate() {
             assert_eq!(before != after, index % 4 == 0);
         }
     }

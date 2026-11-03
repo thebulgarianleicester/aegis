@@ -82,13 +82,17 @@ impl Containment {
         }
         let members = lineage.tree(root);
         if members.is_empty() {
-            report.errors.push("process tree is no longer visible".to_owned());
+            report
+                .errors
+                .push("process tree is no longer visible".to_owned());
             return report;
         }
         for member in members {
             let pid = member.key.pid;
             if pid <= 1 || pid == self.self_pid {
-                report.errors.push(format!("refusing to signal protected PID {pid}"));
+                report
+                    .errors
+                    .push(format!("refusing to signal protected PID {pid}"));
                 continue;
             }
             report.pids.push(pid);
