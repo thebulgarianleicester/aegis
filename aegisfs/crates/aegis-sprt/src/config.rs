@@ -67,7 +67,10 @@ impl Config {
             header_change: Likelihood { benign: 0.001, suspicious: 0.80 },
             unlink_or_rename: Likelihood { benign: 0.02, suspicious: 0.65 },
             directory_jump: Likelihood { benign: 0.03, suspicious: 0.70 },
-            canary: Likelihood { benign: 0.0001, suspicious: 0.9999 },
+            // Decoy access is a policy trap, not ordinary statistical evidence;
+            // retain enough LLR mass that unrelated negative features cannot
+            // cancel single-event containment in this synthetic profile.
+            canary: Likelihood { benign: 1e-9, suspicious: 0.999_999_999 },
             decay_per_second: 0.08,
             threshold: 9.210_340_371_976_184,
             max_groups: 1024,

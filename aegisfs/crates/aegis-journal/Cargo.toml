@@ -9,6 +9,7 @@ anyhow = "1"
 blake3 = "1"
 fs2 = "0.4"
 rusqlite = { version = "0.32", features = ["bundled"] }
+serde.workspace = true
 tempfile = "3"
 
 [dev-dependencies]

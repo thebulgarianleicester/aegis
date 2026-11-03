@@ -417,7 +417,7 @@ impl TxJournal {
             .query_map([&self.ragid], |row| record_from_row(row))?
             .collect::<std::result::Result<Vec<_>, _>>()?;
         let mut restored_operations = 0;
-        let mut restored_bytes = 0;
+        let mut restored_bytes = 0u64;
         for record in records {
             self.rollback_record(&record)?;
             self.db.execute(
